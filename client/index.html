@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spoofing - Midnight's</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+    <style type="text/tailwindcss">
+        @tailwind base;
+        @tailwind components;
+        @tailwind utilities;
+
+        body {
+            @apply bg-gray-950 text-white;
+            color-scheme: dark;
+            font-family: "Inter", sans-serif;
+            font-optical-sizing: auto;
+            font-style: normal;
+            font-variation-settings: "slnt" 0;
+        }
+
+        .group-container {
+            @apply w-full px-2 py-1 border border-white/10 bg-white/10 rounded-lg;
+        }
+    </style>
+
+    <style>
+        /* Aqui você pode estilizar a logo */
+        .logo {
+            width: 350px; /* Largura da imagem */
+            height: auto; /* Mantém a proporção da imagem */
+        }
+
+        /* Centralizar a logo na página */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100% /* Altura total da tela */
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Container para centralizar a logo -->
+    <div class="logo-container">
+        <!-- Exibindo a logo -->
+        <img src="logo.png" alt="Minha Logo" class="logo">
+    </div>
+
+    <div class="grid h-screen w-screen items-center justify-center">
+        <div class="grid gap-8">
+
+            <!-- Formulário para gerenciar mensagens -->
+            <div class="p-4 bg-white/10 rounded-lg grid gap-2 w-96">
+                <center><h1 class="text-2xl font-bold">Comunidade Midnight's</h1></center>
+
+                <!-- Campo para adicionar nova mensagem -->
+                <input type="text" id="new_message" class="w-full px-2 py-1 border border-white/10 bg-white/10 rounded-lg outline-none" placeholder="Insira uma nova mensagem" required>
+
+                <!-- Botão para salvar a mensagem -->
+                <button onclick="saveMessage()" class="w-full px-2 py-1 border border-white/10 bg-white/10 rounded-lg outline-none">Salvar Mensagem</button>
+
+                <!-- Lista de mensagens salvas -->
+                <div id="messageList" class="mt-4">
+                    <h2 class="text-xl font-bold">Mensagens Salvas</h2>
+                    <ul id="messagesBox" class="list-none p-0">
+                        <!-- Mensagens adicionadas aparecerão aqui -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Formulário para enviar mensagens -->
+            <form onsubmit="sendForm(); return false;" class="p-4 bg-white/10 rounded-lg grid gap-2 w-96">
+
+                <!-- Campo para carregar o arquivo .txt -->
+                <input type="file" id="fileInput" class="w-full px-2 py-1 border border-white/10 bg-white/10 rounded-lg outline-none" accept=".txt" placeholder="Carregue o arquivo de números" required>
+
+                <!-- Campo para a mensagem de resposta -->
+                <input type="text" class="w-full px-2 py-1 border border-white/10 bg-white/10 rounded-lg outline-none" placeholder="Mensagem que você irá enviar." id="rpl_msg" required>
+
+                <!-- Campo para definir o delay entre os envios -->
+                <input type="number" id="delay" class="w-full px-2 py-1 border border-white/10 bg-white/10 rounded-lg outline-none" placeholder="Delay (em segundos)" value="30" min="1">
+
+                <button type="submit" class="w-full px-2 py-1 border border-white/10 bg-white/10 rounded-lg outline-none">Enviar Mensagens</button>
+            </form>
+
+            <!-- Container para exibir grupos -->
+            <div class="p-4 bg-white/10 rounded-lg grid gap-2 w-96">
+                <h2 class="text-xl font-bold">JID - Grupos</h2>
+                <div class="overflow-y-auto max-h-64 grid gap-2 pr-2" id="gids">
+                    Procurando...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        let savedMessages = [];
+
+        // Função para salvar uma nova mensagem
+        const saveMessage = () => {
+            const newMessage = document.getElementById('new_message').value;
+            if (newMessage.trim() !== "") {
+                savedMessages.push(newMessage);  // Adiciona a nova mensagem ao array
+                document.getElementById('new_message').value = "";  // Limpa o campo de entrada
+                updateMessageList();  // Atualiza a lista de mensagens salvas
+            }
+        };
+
+        // Função para atualizar a lista de mensagens salvas
+        const updateMessageList = () => {
+            const messageList = document.getElementById('messagesBox');
+            messageList.innerHTML = '';  // Limpa a lista atual
+            savedMessages.forEach((msg, index) => {
+                const li = document.createElement('li');
+                li.className = 'p-2 border border-white/10 bg-white/10 rounded-lg mt-2';
+                li.textContent = `Mensagem ${index + 1}: ${msg}`;
+                messageList.appendChild(li);  // Adiciona a mensagem à lista
+            });
+        };
+
+        // Função de delay em milissegundos
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // Função para buscar e exibir os grupos
+        const fetchGids = async () => {
+            try {
+                const res = await fetch("/get-groups");
+                let data = (await res.text()).split("\n").map(e => e.trim());
+
+                data = data
+                    .filter(e => e.length > 0)
+                    .map(e => {
+                        let split = e.split(":");
+                        const id = split.pop();
+                        const name = split.join(":");
+
+                        return `<div class="group-container"><b>${name}</b><br /><code>${id}</code></div>`;
+                    });
+
+                const container = document.getElementById("gids");
+                container.innerHTML = data.join("");  // Exibe todos os grupos
+            } catch (error) {
+                console.error("Erro ao buscar os grupos: ", error);
+            }
+        };
+
+        // Função para gerar um delay aleatório entre 60 e 120 segundos
+        const randomDelay = () => {
+            const minDelay = 60000;  // 60 segundos em milissegundos
+            const maxDelay = 120000; // 120 segundos em milissegundos
+            return Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+        };
+
+        // Função para ler o arquivo .txt e enviar mensagens
+        const sendForm = async () => {
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+            const rpl_msg = document.getElementById("rpl_msg").value;
+
+            if (!file) {
+                alert("Por favor, selecione um arquivo com os números.");
+                return;
+            }
+
+            if (savedMessages.length === 0) {
+                alert("Por favor, salve pelo menos uma mensagem para enviar.");
+                return;
+            }
+
+            // Ler o arquivo de números
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const content = event.target.result;
+                const numbers = content.split("\n").map(line => line.trim()).filter(line => line.length > 0);
+
+                if (rpl_msg.length === 0) {
+                    alert("A mensagem de resposta é obrigatória.");
+                    return;
+                }
+
+                // Loop para enviar a mensagem para cada número
+                for (let i = 0; i < numbers.length; i++) {
+                    let cid = numbers[i];  // Captura o número (JID)
+                    if (!cid.includes("@")) cid += "@s.whatsapp.net";
+
+                    // Escolhe uma mensagem aleatória
+                    const randomMessage = savedMessages[Math.floor(Math.random() * savedMessages.length)];
+
+                    let data = {
+                        "chat_id": cid,
+                        "spoofed_id": cid,  // Suponho que o spoofed_id é o próprio cid
+                        "message_id": "!",  // Placeholder para o message_id
+                        "spoofed_message": randomMessage,  // Mensagem escolhida aleatoriamente
+                        "reply_message": rpl_msg
+                    };
+
+                    // Função que faz o envio da mensagem
+                    const sendMessage = async () => {
+                        try {
+                            const res = await fetch("/send-spoofed", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify(data)
+                            });
+
+                            if (!res.ok) {
+                                throw new Error("Falha ao enviar a mensagem.");
+                            }
+
+                            const text = await res.json();
+                            alert(`Mensagem enviada para ${cid}`);
+                        } catch (error) {
+                            console.error(`Erro ao enviar a mensagem para ${cid}:`, error);
+                            alert(`Erro ao enviar a mensagem para ${cid}`);
+                        }
+                    };
+
+                    // Gera o delay aleatório e envia a mensagem
+                    const delayMs = randomDelay();  // Gera o delay aleatório entre 60 e 120 segundos
+                    await delay(delayMs);  // Aplica o delay aleatório
+                    await sendMessage();
+                }
+
+                alert("Todas as mensagens foram enviadas com sucesso!");
+            };
+
+            reader.readAsText(file);
+        };
+
+        // Executa a função de busca dos grupos ao carregar a página
+        fetchGids();
+    </script>
+</body>
+
+</html>
